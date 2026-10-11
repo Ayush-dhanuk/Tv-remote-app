@@ -22,6 +22,10 @@
       },
       "permissions": ["INTERNET", "ACCESS_WIFI_STATE", "CHANGE_WIFI_STATE"]
     },
-    "plugins": []
+    "extra": {
+      "eas": {
+        "projectId": "0862fb7a-b0ab-477b-8edf-12e2e7b4c539"
+      }
+    }
   }
 }
