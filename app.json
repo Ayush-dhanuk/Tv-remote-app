@@ -2,6 +2,7 @@
   "expo": {
     "name": "TV Remote",
     "slug": "tv-remote",
+    "owner": "ayushdhanuks-team",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -20,7 +21,11 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#121212"
       },
-      "permissions": ["INTERNET", "ACCESS_WIFI_STATE", "CHANGE_WIFI_STATE"]
+      "permissions": [
+        "INTERNET",
+        "ACCESS_WIFI_STATE",
+        "CHANGE_WIFI_STATE"
+      ]
     },
     "extra": {
       "eas": {
