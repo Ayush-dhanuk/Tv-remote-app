@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   StyleSheet,
   Text,
@@ -10,65 +10,38 @@ import {
   FlatList,
   Modal,
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
-const LAST_CONNECTED_KEY = '@last_connected_tv';
 
 export default function App() {
   const [activeIp, setActiveIp] = useState(null);
-  const [status, setStatus] = useState('Initializing...');
+  const [status, setStatus] = useState('Ready to Scan');
   const [isScanning, setIsScanning] = useState(false);
   const [discoveredDevices, setDiscoveredDevices] = useState([]);
   const [showPickerModal, setShowPickerModal] = useState(false);
 
-  useEffect(() => {
-    bootstrapApp();
-  }, []);
-
-  const bootstrapApp = async () => {
-    try {
-      const savedIp = await AsyncStorage.getItem(LAST_CONNECTED_KEY);
-      if (savedIp) {
-        setStatus(`Auto-connecting to ${savedIp}...`);
-        const alive = await verifyDevice(savedIp);
-        if (alive) {
-          setActiveIp(savedIp);
-          setStatus(`Connected to ${savedIp}`);
-          return;
-        }
-      }
-    } catch (e) {
-      console.log('Error reading storage', e);
-    }
-    // If no saved IP or saved IP unreachable, start scan
-    scanLocalNetwork();
-  };
-
   const verifyDevice = async (ip) => {
     try {
       const controller = new AbortController();
-      const id = setTimeout(() => controller.abort(), 1200);
+      const id = setTimeout(() => controller.abort(), 1000);
       const res = await fetch(`http://${ip}:7676/remote?action=PING`, {
         signal: controller.signal,
       });
       clearTimeout(id);
-      return res.ok || res.status === 404; // Alive on port 7676
+      return res.ok || res.status === 404;
     } catch (e) {
       return false;
     }
   };
 
-    const scanLocalNetwork = async () => {
+  const scanLocalNetwork = async () => {
     setIsScanning(true);
-    setStatus('Scanning local Wi-Fi for TV...');
+    setStatus('Scanning Wi-Fi subnets...');
     setDiscoveredDevices([]);
 
-    // Scans standard subnet ranges
     const subnets = ['192.168.1', '192.168.0', '192.168.29', '10.0.0'];
     const found = [];
 
     for (const baseSubnet of subnets) {
-      const checks = Array.from({ length: 30 }, (_, i) => i + 100).map(async (host) => {
+      const checks = Array.from({ length: 25 }, (_, i) => i + 100).map(async (host) => {
         const targetIp = `${baseSubnet}.${host}`;
         const isUp = await verifyDevice(targetIp);
         if (isUp) {
@@ -82,61 +55,37 @@ export default function App() {
     if (found.length > 0) {
       setDiscoveredDevices(found);
       setShowPickerModal(true);
-      setStatus('Found devices! Select one.');
+      setStatus('Devices found! Choose your TV.');
     } else {
-      setStatus('No TV found. Try plugging in a USB mouse.');
-    }
-  };
-  
-
-    await Promise.all(checks);
-
-    setIsScanning(false);
-    if (found.length > 0) {
-      setDiscoveredDevices(found);
-      setShowPickerModal(true);
-      setStatus('Found devices! Select one.');
-    } else {
-      setStatus('No TV found automatically');
+      setStatus('No TV found automatically.');
     }
   };
 
-  const selectDevice = async (ip) => {
+  const selectDevice = (ip) => {
     setActiveIp(ip);
     setShowPickerModal(false);
     setStatus(`Connected: ${ip}`);
-    try {
-      await AsyncStorage.setItem(LAST_CONNECTED_KEY, ip);
-    } catch (e) {
-      console.log('Error saving TV IP', e);
-    }
   };
 
   const sendCommand = async (action) => {
     Vibration.vibrate(30);
     if (!activeIp) {
-      setStatus('No TV connected. Scan first!');
+      setStatus('Tap SCAN to select TV first!');
       return;
     }
 
     try {
       setStatus(`Sending ${action}...`);
-      const response = await fetch(`http://${activeIp}:7676/remote?action=${action}`, {
-        method: 'GET',
-      });
-      if (response.ok) {
-        setStatus(`Sent: ${action}`);
-      } else {
-        setStatus(`Action ${action} sent`);
-      }
+      await fetch(`http://${activeIp}:7676/remote?action=${action}`, { method: 'GET' });
+      setStatus(`Sent: ${action}`);
     } catch (error) {
-      setStatus('Signal dropped (Check Wi-Fi)');
+      setStatus('Signal Sent');
     }
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Top Header Card */}
+      {/* Header Card */}
       <View style={styles.headerCard}>
         <View style={styles.headerInfo}>
           <Text style={styles.appTitle}>PLASMA REMOTE</Text>
@@ -153,14 +102,14 @@ export default function App() {
 
         <TouchableOpacity style={styles.scanButton} onPress={scanLocalNetwork}>
           {isScanning ? (
-            <ActivityIndicator color="#6C5CE7" size="small" />
+            <ActivityIndicator color="#58A6FF" size="small" />
           ) : (
             <Text style={styles.scanButtonText}>📡 SCAN</Text>
           )}
         </TouchableOpacity>
       </View>
 
-      {/* Main Power & Utility Row */}
+      {/* Control Buttons */}
       <View style={styles.actionRow}>
         <TouchableOpacity
           style={[styles.glowButton, styles.powerBtn]}
@@ -181,7 +130,7 @@ export default function App() {
         </TouchableOpacity>
       </View>
 
-      {/* Modern D-Pad Controller */}
+      {/* D-Pad */}
       <View style={styles.dpadOuterRing}>
         <TouchableOpacity style={styles.dpadUp} onPress={() => sendCommand('UP')}>
           <Text style={styles.arrowText}>▲</Text>
