@@ -58,22 +58,36 @@ export default function App() {
     }
   };
 
-  const scanLocalNetwork = async () => {
+    const scanLocalNetwork = async () => {
     setIsScanning(true);
     setStatus('Scanning local Wi-Fi for TV...');
     setDiscoveredDevices([]);
 
-    // Scan common local subnet range (192.168.1.x)
-    const baseSubnet = '192.168.1';
+    // Scans standard subnet ranges
+    const subnets = ['192.168.1', '192.168.0', '192.168.29', '10.0.0'];
     const found = [];
 
-    const checks = Array.from({ length: 25 }, (_, i) => i + 100).map(async (host) => {
-      const targetIp = `${baseSubnet}.${host}`;
-      const isUp = await verifyDevice(targetIp);
-      if (isUp) {
-        found.push({ ip: targetIp, name: `Android TV (${targetIp})` });
-      }
-    });
+    for (const baseSubnet of subnets) {
+      const checks = Array.from({ length: 30 }, (_, i) => i + 100).map(async (host) => {
+        const targetIp = `${baseSubnet}.${host}`;
+        const isUp = await verifyDevice(targetIp);
+        if (isUp) {
+          found.push({ ip: targetIp, name: `Android TV (${targetIp})` });
+        }
+      });
+      await Promise.all(checks);
+    }
+
+    setIsScanning(false);
+    if (found.length > 0) {
+      setDiscoveredDevices(found);
+      setShowPickerModal(true);
+      setStatus('Found devices! Select one.');
+    } else {
+      setStatus('No TV found. Try plugging in a USB mouse.');
+    }
+  };
+  
 
     await Promise.all(checks);
 
